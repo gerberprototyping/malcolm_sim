@@ -14,6 +14,8 @@ class Network:
         """Network packet object. Just a wrapper around the attribute 'data'"""
         data:any
         size:int
+        src:str
+        type:str
         attrs:dict
 
     def __init__(self, bandwidth:int) -> None:

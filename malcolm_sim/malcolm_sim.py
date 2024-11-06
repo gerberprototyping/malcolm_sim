@@ -1,7 +1,9 @@
 """Contains the primary class for the malcolm_sim module"""
 
 import logging
+from typing import List
 
+from .malcolm_node import MalcolmNode
 from .schedular import Schedular
 from .task import Task
 from .log import get_main_logger
@@ -11,6 +13,11 @@ class MalcolmSim:
     """Primary class of the malcolm_sim module. Allows simulating a Malcolm Cluster"""
 
     logger:logging.Logger = get_main_logger("malcolm_sim", "malcolm_sim.log")
+
+
+    def __init__(self, name:str, nodes:List[MalcolmNode]) -> None:
+        pass
+
 
     @classmethod
     def _test_schedular(cls) -> None:
@@ -30,7 +37,7 @@ class MalcolmSim:
         schedular = Schedular(
             name="Testing",
             core_count=2,
-            perf=1,
+            core_perf=1,
             io_count=32,
             io_perf=1,
             overhead=0

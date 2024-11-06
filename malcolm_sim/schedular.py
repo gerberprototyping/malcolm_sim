@@ -35,14 +35,14 @@ class Schedular:
     def __init__(self,
                  name:(str|int),
                  core_count:int,
-                 perf:float,
+                 core_perf:float,
                  io_count:int,
                  io_perf:float,
                  overhead:float
     ) -> None:
         self.name = str(name)
         self.core_count:int = core_count
-        self.perf:float = perf
+        self.core_perf:float = core_perf
         self.io_count:int = io_count
         self.io_perf:float = io_perf
         self.overhead:float = overhead
@@ -58,28 +58,34 @@ class Schedular:
         self.ios:List[Schedular.ExecUnit] \
             = [Schedular.ExecUnit() for _ in range(self.io_count)]
         # Track per core utilization (0-1)
-        self.utilization:List[float] = [0]*self.core_count
+        self.core_utilization:List[float] = [0]*self.core_count
         # Track per IO utilization (0-1)
         self.io_utilization:List[float] = [0]*self.core_count
 
 
-    def get_utilization(self) -> float:
-        """Return total CPU utilization (0-1)"""
-        return sum(self.utilization) / self.core_count
+    def core_availability(self) -> float:
+        """Return total unutilized CPU (thread-safe)"""
+        avail = 0
+        for util in self.core_utilization:
+            avail += (1-util) * self.core_perf
+        return avail
 
 
-    def get_io_utilization(self) -> float:
-        """Return total IO utilization (0-1)"""
-        return sum(self.io_utilization) / self.io_count
+    def io_availability(self) -> float:
+        """Return total unutilized IO (thread-safe)"""
+        avail = 0
+        for util in self.io_utilization:
+            avail += (1-util) * self.io_perf
+        return avail
 
 
-    def get_load(self) -> float:
-        """Return the system load as max of CPU and IO utilization (0-1)"""
-        return max(self.get_utilization(), self.get_io_utilization())
+    def availability(self) -> float:
+        """Return the system availability as the min of CPU and IO availability (thread-safe)"""
+        return min(self.core_availability(), self.io_availability())
 
 
     def add_tasks(self, tasks:Iterable) -> None:
-        """Add tasks to this scheduler's queue"""
+        """Add tasks to this scheduler's queue (thread-safe)"""
         self.queue.extend(tasks)
 
 
@@ -87,9 +93,12 @@ class Schedular:
         """
         Simulate execution for time_slice milliseconds.
         Returns a list of tasks that have completed execution
+        (NOT thread-safe)
         """
-        completed:List[Task] = []
         curr_time:float = 0    # current time in this time slice
+        completed:List[Task] = []
+        core_busy_time:List[float] = [0]*self.core_count
+        io_busy_time:List[float] = [0]*self.io_count
         prev_delta_t = -1
         self.logger.info("Schedular:%s : Simulating time slice %g ms", self.name, time_slice)
         # Simulation loop within time slice, each iteration is a single event
@@ -166,7 +175,10 @@ class Schedular:
             self.logger.debug("Schedular:%s : delta_t = %g", self.name, delta_t)
             # Simulate delta t milliseconds for each core
             for i,core in enumerate(self.cores):
-                if core.is_busy() and core.task.sim_cpu(delta_t):
+                busy = core.is_busy()
+                if busy:
+                    core_busy_time[i] += delta_t
+                if busy and core.task.sim_cpu(delta_t):
                     # Task finished CPU portion
                     if core.task.get_attr("overhead"):
                         # finished overhead, schedular main_task
@@ -194,7 +206,10 @@ class Schedular:
                         core.task = None
             # Simulate delta t milliseconds for each IO
             for i,io in enumerate(self.ios):
-                if io.is_busy() and io.task.sim_io(delta_t):
+                busy = io.is_busy()
+                if busy:
+                    io_busy_time[i] += delta_t
+                if busy and io.task.sim_io(delta_t):
                     # Task complete
                     completed.append(io.task)
                     self.logger.debug(
@@ -217,10 +232,14 @@ class Schedular:
             )
         else:
             self.logger.debug("Schedular:%s : No tasks completed", self.name)
+        # Update utilization and return completed tasks
+        self.core_utilization = sum(core_busy_time) / self.core_count / time_slice
+        self.io_utilization = sum(io_busy_time) / self.io_count / time_slice
         return completed
 
 
     def _overhead_task(self, main_task:Task) -> Task:
+        """Create a schedular overhead wrapper task (thread-safe)"""
         if self.overhead <= 0:
             return main_task
         attrs = {
@@ -231,10 +250,11 @@ class Schedular:
 
 
     def __str__(self) -> str:
+        """String summary of this Schedular (thread-safe)"""
         rval =  f"Schedular '{self.name}':\n"
         rval += f"    cores:     {self.core_count}"
-        if self.perf != 1:
-            rval += f"  (x{self.perf:g})"
+        if self.core_perf != 1:
+            rval += f"  (x{self.core_perf:g})"
         rval += f"\n    ios:       {self.io_count}"
         if self.io_perf != 1:
             rval += f"  (x{self.io_perf:g})"
@@ -245,7 +265,7 @@ class Schedular:
 
 
     def state_str(self) -> str:
-        """Details about the current state of each core and IO"""
+        """Details about the current state of each core and IO (thread-safe)"""
         rval = f"Schedular:{self.name}\n"
         for i,core in enumerate(self.cores):
             rval += f"    Core {i}: "

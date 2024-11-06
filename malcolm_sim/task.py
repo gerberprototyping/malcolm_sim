@@ -5,6 +5,8 @@ from __future__ import annotations
 import inspect
 from typing import Dict
 
+from .network import Network
+
 
 class Task:
     """Modules a task to be executed in a Malcolm Cluster"""
@@ -73,6 +75,10 @@ class Task:
         else:
             self.progress = self.io_time
             return True
+
+    def make_packet(self, src:str) -> Network.Packet:
+        """Wrap a task in a network packet"""
+        return Network.Packet(self, self.payload, src, "Task", None)
 
 
     def __str__(self) -> str:
