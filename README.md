@@ -46,27 +46,24 @@ TODO
 The Policy Optimizer is responsible for receiving incoming heartbeats from the
 Network Subsystem as well as sending its own heartbeat. Its primary role is to
 analyze the up-to-date load of the current node and out-of-date load of other
-nodes and send policy adjustments to the Load Manager and DLB game. Additionally,
-an integer scalar is sent to the Central Loadbalancer to adjust the distribution
-of incoming tasks (default is 8).
+nodes and send policy adjustments to the Load Manager and DLB game.
 
 ### Intra-node Schedular
 
 This subsystem is responsible for scheduling and executing tasks within the
 Malcolm Node. These tasks are queued and evaluated by a set of Execution Units
 
-| Parameters    | Description |
-|---------------|-------------|
-| Cores         | Core count of this Malcolm Node (int)
-| Performance   | Performance multiplier for cores in this Malcolm Node (float)
-| Overhead      | Overhead in milliseconds for task execution (float)
+| Parameters        | Description |
+|-------------------|-------------|
+| Cores             | Number of cores in this Malcolm Node (int)
+| Core Performance  | Performance multiplier for cores in this Malcolm Node (float)
+| IO Cores          | Number of concurrent IO tasks supported in this Malcolm Node (int)
+| IO Performance    | Performance multiplier for IO in this Malcolm Node (float)
+| Overhead          | Overhead in milliseconds for task execution (float)
 
 ## Central Loadbalancer
 
-Tasks are distributed among the Malcolm nodes based on their adjustable
-distribution scalar (default 8).
-
-TODO distribution algorithm
+Tasks are distributed among Malcolm nodes via round-robin.
 
 ## Tasks
 
@@ -82,3 +79,17 @@ subsystems should treat them as black-box and of equal weight/difficulty.
 | Payload       | Size in bytes of payload
 
 ## Heartbeat
+
+TODO
+
+## Random Task Generator
+
+The Random Task Generator is responsible for generated random tasks for the
+simulation at a randomly changing rate.
+
+| Parameters    | Description |
+|---------------|-------------|
+| Rate          | A random distribution function to control the rate of generated tasks
+| Runtime       |
+| IOTime        |
+| Payload       |
