@@ -39,11 +39,11 @@ class TaskGen:
         self.io_time = io_time
         self.payload = payload
 
-    def gen_time_slice(self, time_slice:float) -> List[Task]:
+    def gen_time_slice(self, time_slice:float, curr_time:float) -> List[Task]:
         """Generate all tasks for a time slice"""
-        self.func(self, time_slice)
+        self.func(self, time_slice, curr_time)
 
-    def _gen_gaussian(self, time_slice:float) -> Task:
+    def _gen_gaussian(self, time_slice:float, curr_time:float) -> Task:
         rate = self.rate_func()
         num_tasks = int(rate*time_slice*1000)
         task_args = (
@@ -53,6 +53,7 @@ class TaskGen:
         )
         tasks = []
         for args in zip(*task_args):
-            tasks.append(Task(f"#{self.id_count}", *args))
+            attrs = {"gen_time": curr_time}     # must be inside loop
+            tasks.append(Task(f"#{self.id_count}", *args, attrs=attrs))
             self.id_count += 1
         return tasks

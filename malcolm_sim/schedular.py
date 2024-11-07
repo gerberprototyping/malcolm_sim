@@ -58,9 +58,9 @@ class Schedular:
         self.ios:List[Schedular.ExecUnit] \
             = [Schedular.ExecUnit() for _ in range(self.io_count)]
         # Track per core utilization (0-1)
-        self.core_utilization:List[float] = [0]*self.core_count
+        self.core_utilization:List[float] = [0 for _ in range(self.core_count)]
         # Track per IO utilization (0-1)
-        self.io_utilization:List[float] = [0]*self.core_count
+        self.io_utilization:List[float] = [0 for _ in range(self.core_count)]
 
 
     def core_availability(self) -> float:

@@ -16,7 +16,7 @@ class Heartbeat:
     queue_size:int
 
     @classmethod
-    def make_packet(cls, src:str, availability:float, queue_size:int) -> Network.Packet:
+    def make_packet(cls, src:str, dest:str, availability:float, queue_size:int) -> Network.Packet:
         """Create a Heartbeat and embed it in a network packet"""
         data = cls(availability, queue_size)
-        return Network.Packet(data, HEARTBEAT_SIZE, src, "Heartbeat", None)
+        return Network.Packet(data, HEARTBEAT_SIZE, src, dest, "Heartbeat", None)
