@@ -46,35 +46,46 @@ them at various rates. Each node has a load manager which decides whether to
 keep a task or migrate it to another node and even steal a task. The game is a
 Markov game wich generalizes both markov decision processes and repeated games.
 N heterogeneous nodes are represented by N agents. The game is divided into
-rounds and each round each node i can receive a new task with probability q_i or
-complete a task with probability q_i.
+rounds:
+
+- node 𝑖 receives a new task with probability 𝑝𝑖 and completes a task with
+  probability 𝑞𝑖
+
+| Parameters | Description                                              |
+| ---------- | -------------------------------------------------------- |
+| States     | Evolves over time as agents take scheduling actions      |
+| Actions    | Agents can accept or steal a task from another node      |
+| Strategy   | provides a description of how an agent plays the game    |
+| Utility    | captures cost of load imbalance, migrations and stealing |
 
 #### States and Actions
 
-The load on each node represents its current state. the load on node i at round
-r is denoted by x_i,r and at round r the state is x_r = (x_1r, ... , x_Nr). The
-state of the game evolves over time as agents take scheduling actions. A
-scheduling action taken by agent i at round r is denoted as a_ir and all
-agrregated represented as a_r (a_1r, ... ,a_Nr).
+The load on each node represents its current state. The state of the game
+evolves over time as agents take scheduling actions.
+
+- The load on node 𝑖 at round 𝑟 is denoted by 𝑥[𝑖][𝑟] . The state of the game at
+  round 𝑟 is 𝑥[𝑟] = (𝑥[1][𝑟] ,...,𝑥[𝑁][𝑟]).
+- We denote the set of scheduling actions taken by agent 𝑖 at round 𝑟 by 𝑎[𝑖][𝑟]
+  .
+  - We use 𝑎[𝑟] = (𝑎[1][𝑟] ,...,𝑎[𝑁][𝑟]) to aggregate all actions taken by all
+    nodes at round 𝑟.
 
 #### Strategies
 
-A strategy, 𝜋, describes the way an agent plays the game. Let h_r =
-(x_0,a_0,x_1,a_1,...,x_r )denote the history of the game at round 𝑟. The
-algorithm uses a stationary strategy, where it only depends on the final state
-of each history, making decisions based on the current system load
+A strategy describes the way an agent plays the game. The algorithm uses a
+stationary strategy, where it only depends on the final state of each history,
+making decisions based on the current system load
+
+- Let h[𝑟] = (𝑥0,𝑎0,𝑥1,𝑎1,...,𝑥𝑟 )denote the history of the game at round 𝑟.
 
 #### Utility
 
 The utility function measures the cost of load imbalance across nodes and
-includes the costs of migration and work stealing requests represented as: 𝑢(𝑥*𝑟
-,𝑎*𝑟 )=−∑︁*i,j(𝑥*𝑖𝑟−𝑥*𝑗, )^2−𝐶(𝑎). It uses a linear function C to calculate
-penalties for migration and work-stealing. Let 𝜋*𝑖 denote the strategy of agent
-𝑖, and let 𝜋*−𝑖 = (𝜋_1,...,𝜋\_(𝑖−1),𝜋\_(𝑖+1),...,𝜋*𝑁 )represent the strategy of
-all agents other than 𝑖. The value function represents the long-term value of a
-state 𝑥 for each agent 𝑖under strategy 𝜋 = (𝜋*𝑖 ,𝜋*−𝑖 ), and it is defined as:
-𝑉^𝑖_𝑥(𝜋)= E[∑︁ 𝛿^𝑟 𝑢(𝑥\_𝑟 ,𝑎\_𝑟 )|𝑎\_𝑟 ∼𝜋,𝑥_0 = 𝑥 ]. This function captures the
-expected payoff in state 𝑥 plus the expected discounted sum of future payoffs.
+includes the costs of migration and work stealing requests. It uses a linear
+function C to calculate penalties for migration and work-stealing.
+
+- Let 𝜋[𝑖] denote the strategy of agent 𝑖, and let 𝜋[−𝑖] =
+  (𝜋1,...,𝜋𝑖−1,𝜋𝑖+1,...,𝜋𝑁 ) represent the strategy of all agents other than i.
 
 ### Policy Optimizer
 
