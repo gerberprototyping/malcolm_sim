@@ -7,7 +7,23 @@ Modules:
 """
 
 from .malcolm_sim import MalcolmSim
-from .task import Task
+from .malcolm_node import MalcolmNode
 from .schedular import Schedular
+from .network import Network
+from .heartbeat import Heartbeat
+from .task import Task
+from .task_gen import TaskGen
+from .central_loadbalancer import CentralLoadBalancer
+from .thread_safe_list import ThreadSafeList
 
-__all__ = ["MalcolmSim", "Task", "Schedular"]
+__all__ = [
+    "MalcolmSim",
+    "MalcolmNode",
+    "Schedular",
+    "Network",
+    "Heartbeat",
+    "Task",
+    "TaskGen",
+    "CentralLoadBalancer",
+    "ThreadSafeList"
+]

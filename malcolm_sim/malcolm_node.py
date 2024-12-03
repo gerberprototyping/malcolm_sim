@@ -50,13 +50,26 @@ class MalcolmNode:
         cls.async_callback = callback
 
 
+    @classmethod
+    def from_config(cls, node_config:dict) -> MalcolmNode:
+        """Create a Malcolm Node from config dict. Assumes schema is validated"""
+        defaults = {
+            "core_perf": 1,
+            "io_perf": 1,
+        }
+        for k,v in defaults.items():
+            if k not in node_config:
+                node_config[k] = v
+        return cls(**node_config)
+
+
     def __init__(self,
                  name:(str|int),
                  core_count:int,
                  core_perf:float,
                  io_count:int,
                  io_perf:float,
-                 schedular_overhead:float,
+                 overhead:float,
                  bandwidth:int
     ) -> None:
         """
@@ -80,12 +93,12 @@ class MalcolmNode:
             core_perf,
             io_count,
             io_perf,
-            schedular_overhead
+            overhead
         )
         # Init Network
         self.network = Network(bandwidth)
         # Init internal lists
-        self.incoming_tasks:ThreadSafeList[Task] = ThreadSafeList()
+        self.task_inbox:ThreadSafeList[Task] = ThreadSafeList()
         self.tx_queue:List[Network.Packet] = []
         self.other_heartbeats:Dict[Heartbeat] = {}
         # Add self to list of nodes
@@ -123,12 +136,14 @@ class MalcolmNode:
                     self.name, packet.type, packet.src, str(packet.attrs)
                 )
         if new_tasks:
-            self.incoming_tasks.extend(new_tasks)
+            self.task_inbox.extend(new_tasks)
 
 
     @classmethod
     def route_packets(cls, packets:List[Network.Packet]) -> None:
         """Route network packets to the destination MalcolmNode (thread-safe)"""
+        if not packets:
+            return
         routed_packets = {}
         for node_name in cls.all_nodes:
             routed_packets[node_name] = []
@@ -159,6 +174,11 @@ class MalcolmNode:
         accepted:List[Task]
         forwarded:List[Network.Packet]
         accepted,forwarded = ([], [])       # TODO: return value of Load Manager
+        ####################
+        # Bypass Load Manager
+        accepted = self.task_inbox.as_list()
+        self.task_inbox.clear()
+        ####################
         #TODO Run Policy Optimizer
         # Send accepted tasks to Schedular and simulate
         self.schedular.add_tasks(accepted)
@@ -182,7 +202,7 @@ class MalcolmNode:
             if not self.start_time_slice.wait(TIMEOUT):
                 raise TimeoutError(TIMEOUT_MSG)
             # Simulate time slice
-            packets = self.sim_time_slice(time_slice)
+            packets = self.sim_time_slice(time_slice)       # properly synchronized
             # Wait for all nodes to finish time slice
             self.barrier.wait(TIMEOUT)
             curr_time += time_slice

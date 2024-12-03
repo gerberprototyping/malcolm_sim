@@ -15,8 +15,6 @@ CONCURRENCY_TIMEOUT = 1
 class Schedular:
     """Intra-node Schedular of a Malcolm Node"""
 
-    logger = logging.getLogger("malcolm_sim.Schedular")
-
     class ExecUnit:
         """Models a CPU core or IO thread"""
 
@@ -46,6 +44,8 @@ class Schedular:
         self.io_count:int = io_count
         self.io_perf:float = io_perf
         self.overhead:float = overhead
+        self.completed:int = 0
+        self.logger = logging.getLogger(f"malcolm_sim.MalcolmNode.Schedular:{self.name}")
 
         # Queue to hold tasks pending CPU execution
         self.queue:ThreadSafeList[Task] = ThreadSafeList()
@@ -100,10 +100,14 @@ class Schedular:
         core_busy_time:List[float] = [0]*self.core_count
         io_busy_time:List[float] = [0]*self.io_count
         prev_delta_t = -1
-        self.logger.info("Schedular:%s : Simulating time slice %g ms", self.name, time_slice)
+        self.logger.info("Simulating time slice +%g ms", time_slice)
+        self.logger.debug("Task queue: size=%d", len(self.queue))
+        if self.logger.isEnabledFor(logging.TRACE):
+            for task in self.queue.as_list():
+                print("    "+str(task))
         # Simulation loop within time slice, each iteration is a single event
         while curr_time < time_slice:
-            self.logger.debug("Schedular:%s : curr_time = %g", self.name, curr_time)
+            self.logger.debug("curr_time = +%g", curr_time)
             delta_t:float = -1  # time until next event
             # Assign new tasks to idle cores
             for i,core in enumerate(self.cores):
@@ -112,15 +116,15 @@ class Schedular:
                     # Add overhead before running task
                     core.task = self._overhead_task(task)
                     self.logger.debug(
-                        "Schedular:%s : Scheduling%s task %s on core %d",
-                        self.name, " overhead for" if self.overhead>0 else "", task.name, i
+                        "Scheduling%s task %s on core %d",
+                        " overhead for" if self.overhead>0 else "", task.name, i
                     )
                 # idle state may have changed, check again
                 if core.is_busy():
                     this_delta_t = core.task.cpu_remaining()
                     self.logger.trace(
-                        "Schedular:%s : Task %s on core %d has %g ms CPU time remaining",
-                        self.name, core.task.name, i, this_delta_t
+                        "Task %s on core %d has %g ms CPU time remaining",
+                        core.task.name, i, this_delta_t
                     )
                     if delta_t >= 0:
                         if this_delta_t < delta_t:
@@ -132,22 +136,19 @@ class Schedular:
                         # events = [core]
                         delta_t = this_delta_t
                 else:
-                    self.logger.trace("Schedular:%s : Core %d is IDLE", self.name, i)
+                    self.logger.trace("Core %d is IDLE", i)
             # Assign new tasks to idle IOs
             for i,io in enumerate(self.ios):
                 if io.is_idle() and self.io_queue:
                     # No overhead for IO
                     io.task = self.io_queue.pop()
-                    self.logger.debug(
-                        "Schedular:%s : Scheduling task %s on IO %d",
-                        self.name, io.task.name, i
-                    )
+                    self.logger.debug("Scheduling task %s on IO %d",io.task.name, i)
                 # idle state may have changed
                 if io.is_busy():
                     this_delta_t = io.task.io_remaining()
                     self.logger.trace(
-                        "Schedular:%s : Task %s on IO %d has %g ms IO time remaining",
-                        self.name, io.task.name, i, this_delta_t
+                        "Task %s on IO %d has %g ms IO time remaining",
+                        io.task.name, i, this_delta_t
                     )
                     if delta_t >= 0:
                         if this_delta_t < delta_t:
@@ -159,8 +160,8 @@ class Schedular:
                         # events = [io]
                         delta_t = this_delta_t
                 else:
-                    self.logger.trace("Schedular:%s : IO %d is IDLE", self.name, i)
-            self.logger.debug("Schedular:%s : Current state\n%s", self.name, self.state_str())
+                    self.logger.trace(": IO %d is IDLE", i)
+            self.logger.debug("Current state\n%s", self.state_str())
             # Done if all cores/IOs are idle
             if delta_t < 0:
                 break
@@ -172,7 +173,7 @@ class Schedular:
                 raise RuntimeError(f"Schedular:{self.name} : Caught in infinite loop!")
             # bound delta t within time_slice
             delta_t = min(delta_t, time_slice-curr_time)
-            self.logger.debug("Schedular:%s : delta_t = %g", self.name, delta_t)
+            self.logger.debug("delta_t = %g", delta_t)
             # Simulate delta t milliseconds for each core
             for i,core in enumerate(self.cores):
                 busy = core.is_busy()
@@ -220,7 +221,8 @@ class Schedular:
             # Increment current time
             curr_time += delta_t
             prev_delta_t = delta_t
-        self.logger.info("Schedular:%s : Time slice simulation complete", self.name)
+        self.logger.info("Time slice simulation complete")
+        self.completed = len(completed)
         if completed:
             task_str = ""
             for task in completed:
@@ -231,7 +233,7 @@ class Schedular:
                 self.name, len(completed), task_str
             )
         else:
-            self.logger.debug("Schedular:%s : No tasks completed", self.name)
+            self.logger.debug("No tasks completed")
         # Update utilization and return completed tasks
         self.core_utilization = sum(core_busy_time) / self.core_count / time_slice
         self.io_utilization = sum(io_busy_time) / self.io_count / time_slice

@@ -1,17 +1,36 @@
 """Contains the primary class for the malcolm_sim module"""
 
+from __future__ import annotations
+
+import json
 import logging
 import threading
-from typing import Callable, List
+from typing import Dict, List
+
+import yaml
+from schema import Schema, And, Or, Use, Optional
 
 from .central_loadbalancer import CentralLoadBalancer
 from .malcolm_node import MalcolmNode
 from .schedular import Schedular
 from .task import Task
+from .task_gen import TaskGen
 from .log import get_main_logger
 
 
 TIMEOUT = 20
+
+task_schema = Or(
+    {
+        "type": Or("const", "constant"),
+        "value": And(Use(float), lambda n: n > 0)
+    },
+    {
+        "type": "gaussian",
+        "center": And(Use(float), lambda n: n > 0),
+        "scale": And(Use(float), lambda n: n > 0)
+    }
+)
 
 
 class MalcolmSim:
@@ -19,22 +38,85 @@ class MalcolmSim:
 
     logger:logging.Logger = get_main_logger("malcolm_sim", "malcolm_sim.log")
 
+    config_schema:Schema = Schema({
+        "MalcolmNodes": [{
+            "name": Use(str),
+            "core_count": And(Use(int), lambda n: n > 0),
+            Optional("core_perf"): And(Use(float), lambda n: n > 0),
+            "io_count": And(Use(int), lambda n: n > 0),
+            Optional("io_perf"): And(Use(float), lambda n: n > 0),
+            "overhead": And(Use(float), lambda n: n >= 0),
+            "bandwidth": And(Use(int), lambda n: n > 0)
+        }],
+        "Tasks": {
+            "rate": task_schema,
+            "runtime": task_schema,
+            "io_time": task_schema,
+            "payload": task_schema
+        }
+    })
 
-    def __init__(self, task_gen:Callable) -> None:
+
+    @classmethod
+    def from_json_yaml(cls, filename:str) -> None:
+        """Configures the instance from a JSON or YAML file"""
+        # Parse file
+        ext = filename.split(".")[-1].lower()
+        with open(filename, "r", encoding="utf-8") as f:
+            if ext == "json":
+                config = json.load(f)
+            elif ext in ["yaml", "yml"]:
+                config = yaml.safe_load(f)
+            else:
+                raise ValueError(f"The file '{filename}' is not a valid JSON or YAML file.")
+        # Validate schema
+        cls.config_schema.validate(config)
+        # Parse config
+        task_gen = None
+        for key,value in config.items():
+            key = key.lower()
+            if "malcolmnodes" == key:
+                for node_config in value:
+                    MalcolmNode.from_config(node_config)
+            elif "tasks" == key:
+                task_gen = TaskGen.from_config(value)
+            # else not required because schema is validated
+        return cls(task_gen)
+
+
+    def __init__(self, task_gen:TaskGen) -> None:
         self.task_gen = task_gen
 
+    def cli(self, argv) -> None:
+        """Command line interface to MalcolmSim"""
+        raise NotImplementedError
+
+    # def metrics(self) -> Dict[str, float]:
+    #     return {
+    #         "CPU Busy": [node.schedular.core_utilization for node in MalcolmNode.all_nodes.values()],
+    #         "IO Busy": [node.schedular.io_utilization for node in MalcolmNode.all_nodes.values()],
+    #         "CPU Queue": [len(node.schedular.queue) for node in MalcolmNode.all_nodes.values()],
+    #         "IO Queue": [len(node.schedular.io_queue) for node in MalcolmNode.all_nodes.values()],
+    #         "Completed": [node.schedular.completed for node in MalcolmNode.all_nodes.values()],
+    #     }
 
     def run(self, time_slice:float, sim_time:float) -> None:
         """Run single-threaded simulation of this MalcolmSim instance"""
         curr_time:float = 0.0
-        num_nodes = len(MalcolmNode.all_nodes)
         self.logger.info("Running simulation in single-threaded mode")
         while curr_time <= sim_time:
             self.logger.info("Simulating time slice %g ms", curr_time)
             # Generate and distribute new tasks
-            new_tasks = self.task_gen(time_slice)
+            new_tasks = self.task_gen.gen_time_slice(time_slice, curr_time)
+            if new_tasks:
+                msg = f"Generated {len(new_tasks)} new task(s)"
+                for task in new_tasks:
+                    msg += f"\n{task}"
+                self.logger.debug(msg)
+            else:
+                self.logger.info("No new tasks generated this time slice")
             MalcolmNode.route_packets(
-                CentralLoadBalancer.distribute(num_nodes, new_tasks)
+                CentralLoadBalancer.distribute(new_tasks)
             )
             # Simulate time slice for all nodes
             forwarded_task_packets = []
@@ -46,6 +128,7 @@ class MalcolmSim:
             MalcolmNode.route_packets(forwarded_task_packets)
             # TODO print interesting stuff
             curr_time += time_slice
+            self.logger.info("End of time slice\n\n")
         self.logger.info("Simulation completed")
 
 
@@ -73,7 +156,7 @@ class MalcolmSim:
             # Generate and distribute new tasks
             new_tasks = self.task_gen(time_slice)
             MalcolmNode.route_packets(
-                CentralLoadBalancer.distribute(num_nodes, new_tasks)
+                CentralLoadBalancer.distribute(new_tasks)
             )
             # Signal nodes to start time_slice
             MalcolmNode.start_time_slice.set()
@@ -95,7 +178,7 @@ class MalcolmSim:
 
 
     @classmethod
-    def _test_schedular(cls) -> None:
+    def test_schedular(cls) -> None:
         """Internal testing method"""
         # cls.logger.setLevel(logging.INFO)
         cls.logger.setLevel(logging.DEBUG)

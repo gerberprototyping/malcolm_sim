@@ -5,7 +5,7 @@ import logging
 def get_main_logger(name:str, filename:str = None) -> logging.Logger:
     """Set up and return the main logger. Only run once"""
     main_logger = logging.getLogger(name)
-    main_logger.setLevel(logging.WARNING)
+    main_logger.setLevel(logging.INFO)
 
     # Console handler
     console_handler = logging.StreamHandler()

@@ -1,5 +1,6 @@
 """This file contains an simple implementation of a thread-safe list"""
 
+import copy
 from threading import Lock, Condition
 from typing import Generic, Iterable, List, SupportsIndex, TypeVar
 
@@ -79,6 +80,16 @@ class ThreadSafeList(Generic[T]):
             rval:T = self.list.pop(0)
             self.condition.notify_all()
             return rval
+
+    def clear(self) -> None:
+        """Clear all items from the list making it empty"""
+        with self.condition:
+            self.list.clear()
+
+    def as_list(self) -> List[T]:
+        """Make a copy as a standard list"""
+        with self.condition:
+            return copy.copy(self.list)
 
     def __len__(self) -> int:
         with self.condition:
