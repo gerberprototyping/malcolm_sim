@@ -8,6 +8,8 @@ Modules:
 
 from .malcolm_sim import MalcolmSim
 from .malcolm_node import MalcolmNode
+from .load_manager import LoadManager
+from .policy_optimizer import PolicyOptimizer
 from .schedular import Schedular
 from .network import Network
 from .heartbeat import Heartbeat
@@ -19,6 +21,8 @@ from .thread_safe_list import ThreadSafeList
 __all__ = [
     "MalcolmSim",
     "MalcolmNode",
+    "LoadManager",
+    "PolicyOptimizer",
     "Schedular",
     "Network",
     "Heartbeat",

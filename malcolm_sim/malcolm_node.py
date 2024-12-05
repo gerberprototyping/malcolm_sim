@@ -7,6 +7,8 @@ import re
 import threading
 from typing import Callable, Dict, List
 
+from .load_manager import LoadManager
+from .policy_optimizer import PolicyOptimizer
 from .network import Network
 from .heartbeat import Heartbeat
 from .schedular import Schedular
@@ -83,12 +85,12 @@ class MalcolmNode:
             raise ValueError(msg)
         self.src = f"MalcolmNode:{self.name}"
         #Init Load Manager
-        # TODO
+        self.load_manager = LoadManager(self.name)
         # Init Policy Optimizer
-        # TODO
+        self.policy_optimizer = PolicyOptimizer(self.name, self)
         # Init Schedular
         self.schedular = Schedular(
-            f"{name}.Schedular",
+            self.name,
             core_count,
             core_perf,
             io_count,
@@ -170,25 +172,31 @@ class MalcolmNode:
         """"
         Simulate time slice on this Malcolm Node (NOT thread-safe)
         """
-        #TODO Run Load Manager (returns accepted and forwarded tasks)
+        # Run Load Manager (returns accepted and forwarded tasks)
         accepted:List[Task]
         forwarded:List[Network.Packet]
-        accepted,forwarded = ([], [])       # TODO: return value of Load Manager
+        accepted,forwarded = self.load_manager.sim_time_slice(time_slice)
+
+        # Run Policy Optimizer
+        self.policy_optimizer.sim_time_slice(time_slice)
+
         ####################
-        # Bypass Load Manager
+        # Bypass Load Manager (temporary)
         accepted = self.task_inbox.as_list()
         self.task_inbox.clear()
         ####################
-        #TODO Run Policy Optimizer
+
         # Send accepted tasks to Schedular and simulate
         self.schedular.add_tasks(accepted)
         self.schedular.sim_time_slice(time_slice)
+
         # Prepare outgoing packets
         for node_name in self.all_nodes:    # heartbeat packets sent first
             if node_name != self.name:
                 dest = f"MalcolmNode:{node_name}"
                 self.tx_queue.append(self.get_heartbeat_packet(dest))
         self.tx_queue.extend(forwarded)
+
         # Throttle outgoing packets via Network subsystem
         rval,self.tx_queue = self.network.sim_time_slice(time_slice, self.tx_queue)
         return rval
