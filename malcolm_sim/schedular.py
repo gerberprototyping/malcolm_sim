@@ -232,8 +232,6 @@ class Schedular:
             self.logger.debug("No tasks completed")
         # Update utilization and return completed tasks
         self.core_utilization = sum(core_busy_time) / self.core_count / time_slice
-        print(self.core_utilization)
-        print(self.cores)
         self.io_utilization = sum(io_busy_time) / self.io_count / time_slice
         return completed
 
