@@ -123,19 +123,20 @@ class MalcolmNode:
         new_tasks:List[Task] = []
         for packet in packets:
             if "Heartbeat" == packet.type:
-                if not packet.src in self.all_nodes:
+                src = packet.src.split(":")[1]
+                if not src in list(self.all_nodes.keys()):
                     self.logger.error(
                         "MalcolmNode:%s : Received heartbeat from unknown source '%s'",
-                        self.name, packet.src
+                        self.name, src
                     )
                 else:
-                    self.other_heartbeats[packet.src] = packet.data
+                    self.other_heartbeats[src] = packet.data
             elif "Task" == packet.type:
                 new_tasks.append(packet.data)
             else:
                 self.logger.error(
                     "MalcolmNode:%s : Unknown packet type '%s' (src=%s,attrs=%s)",
-                    self.name, packet.type, packet.src, str(packet.attrs)
+                    self.name, packet.type, src, str(packet.attrs)
                 )
         if new_tasks:
             self.task_inbox.extend(new_tasks)
@@ -174,8 +175,8 @@ class MalcolmNode:
         """
         # Run Load Manager (returns accepted and forwarded tasks)
         accepted:List[Task]
-        forwarded:List[Network.Packet]
-        accepted,forwarded = self.load_manager.sim_time_slice(time_slice)
+        forwarded:List[Network.Packet] = []
+        # accepted,forwarded = self.load_manager.sim_time_slice(time_slice)
 
         # Run Policy Optimizer
         self.policy_optimizer.sim_time_slice(time_slice)
