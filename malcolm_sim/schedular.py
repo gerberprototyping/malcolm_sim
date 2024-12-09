@@ -58,20 +58,24 @@ class Schedular:
         self.ios:List[Schedular.ExecUnit] \
             = [Schedular.ExecUnit() for _ in range(self.io_count)]
         # Track per core utilization (0-1)
-        self.core_utilization:float = 0
+        self.core_utilization:List[float] = [0 for _ in range(self.core_count)]
         # Track per IO utilization (0-1)
-        self.io_utilization:float = 0
+        self.io_utilization:List[float] = [0 for _ in range(self.core_count)]
 
 
     def core_availability(self) -> float:
         """Return total unutilized CPU (thread-safe)"""
-        avail = (1-self.core_utilization) * self.core_perf
+        avail = 0
+        for util in self.core_utilization:
+            avail += (1-util) * self.core_perf
         return avail
 
 
     def io_availability(self) -> float:
         """Return total unutilized IO (thread-safe)"""
-        avail = (1-self.core_utilization) * self.io_perf
+        avail = 0
+        for util in self.io_utilization:
+            avail += (1-util) * self.io_perf
         return avail
 
 
