@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import numpy as np
 from typing import List, Tuple
 
 from .task import Task
@@ -17,7 +18,7 @@ class LoadManager:
         self.forward:float = 0.0
         self.logger = logging.getLogger(f"malcolm_sim.MalcolmNode.LoadManager:{self.name}")
     
-    def sim_time_slice(self, time_slice:float) -> Tuple[List[Task],List[Task]]:
+    def sim_time_slice(self, time_slice:float, incoming_tasks:List[Task]) -> Tuple[List[Task],List[Task]]:
         """
         Simulate Load Manager for time_slice milliseconds.
         Returns a tuple containing a list of accepted and forwarded tasks.
@@ -32,5 +33,18 @@ class LoadManager:
         strategy of agent i as strat_i and strat_-i for all other agent strategies
 
         """
-        raise NotImplementedError()
+        actions = ["accept","forward"]
+        accepted = []
+        forwarded = []
+        for task in incoming_tasks:
+            action = np.random.choice(actions, p=[self.accept, self.forward])
+            if action == "accept":
+                self.logger.debug(f"Accepted task: {task}")
+                self.logger.debug(f"Probability {self.accept}")
+                accepted.append(task)
+            elif action == "forward":
+                self.logger.debug(f"Forwarded task: {task}")
+                self.logger.debug(f"Probability {self.forward}")
+                forwarded.append(task)
+        return accepted, forwarded
                     
