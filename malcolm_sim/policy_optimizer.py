@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import numpy as np
 
 # from .malcolm_node import MalcolmNode
 
@@ -15,13 +16,13 @@ class PolicyOptimizer:
         self.node = node
         self.logger = logging.getLogger(f"malcolm_sim.MalcolmNode.PolicyOptimizer:{self.name}")
 
-    # x = states, a = actions, r = round
-    def utility(self, x, a, r):
-        sum = 0
-        for key, value in self.node.all_nodes.items():
-            # -C(a)?
-            sum += x[self.node.name][r] - x[key][r] ** 2
-        return sum * -1
+    def utility(self, current_load, other_loads):
+        """Compute the reward as the negative of the load imbalance."""
+        avg_load = np.mean(other_loads)
+        # with more information from the node availability in heart beat
+        # imbalance = sum((current_load - load)**2 for load in other_loads) - additional cost of action
+        imbalance = current_load - avg_load
+        return imbalance
 
     def sim_time_slice(self, time_slice:float) -> None:
         """
@@ -61,8 +62,21 @@ class PolicyOptimizer:
         of cores and effiency would take.
         """
         if 0 < time_slice:
-            self.logger.debug(self.node.task_inbox)
             if self.node.other_heartbeats:
-                self.logger.debug(f"heart beats: {self.node.other_heartbeats}")
+                load = len(self.node.schedular.queue)
+                self.logger.debug(f"My load: {load}")
+                other_loads = []
+                other_nodes = {}
+                for key, value in self.node.other_heartbeats.items():
+                    other_loads.append(value.queue_size)
+                    other_nodes[key] = value.queue_size
+                reward = self.utility(load, [load]+other_loads)
+                self.logger.debug(f"Other Nodes: {other_nodes}")
+                self.logger.debug(f"Reward: {reward}")
+                #if utility function changes inequality will need to change
+                if reward < 0:
+                    self.logger.debug("Change policy")
+                else:
+                    self.logger.debug("Keep policy")
             else:
                 self.logger.debug("no heart beats")
