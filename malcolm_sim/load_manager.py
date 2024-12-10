@@ -13,13 +13,9 @@ class LoadManager:
 
     def __init__(self, name:(str|int)) -> None:
         self.name = str(name)
+        self.accept:float = 1.0
+        self.forward:float = 0.0
         self.logger = logging.getLogger(f"malcolm_sim.MalcolmNode.LoadManager:{self.name}")
-
-    def value(strat):
-        raise NotImplementedError()
-
-    def nash_equilibrium():
-        raise NotImplementedError()
     
     def sim_time_slice(self, time_slice:float) -> Tuple[List[Task],List[Task]]:
         """
@@ -36,8 +32,5 @@ class LoadManager:
         strategy of agent i as strat_i and strat_-i for all other agent strategies
 
         """
-        curr_time:float = 0
-        # while curr_time < time_slice:
-        #     for key, value in self.node.all_nodes.items():
-        #         if key != self.node.name:
+        raise NotImplementedError()
                     

@@ -19,7 +19,8 @@ class PolicyOptimizer:
     def utility(self, current_load, other_loads):
         """Compute the reward as the negative of the load imbalance."""
         avg_load = np.mean(other_loads)
-        # with more information from the node availability in heart beat
+        # with more information from the node availability in heart beat load will change
+        # There will also be an additional cost with cost
         # imbalance = sum((current_load - load)**2 for load in other_loads) - additional cost of action
         imbalance = current_load - avg_load
         return imbalance
@@ -73,7 +74,7 @@ class PolicyOptimizer:
                 reward = self.utility(load, [load]+other_loads)
                 self.logger.debug(f"Other Nodes: {other_nodes}")
                 self.logger.debug(f"Reward: {reward}")
-                #if utility function changes inequality will need to change
+                #if utility function changes inequality will need to change (which may be tricky)
                 if reward < 0:
                     self.logger.debug("Change policy")
                 else:
