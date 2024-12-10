@@ -173,17 +173,16 @@ class MalcolmNode:
         """"
         Simulate time slice on this Malcolm Node (NOT thread-safe)
         """
+        # Run Policy Optimizer
+        self.policy_optimizer.sim_time_slice(time_slice, self.load_manager)
+
         # Run Load Manager (returns accepted and forwarded tasks)
         accepted:List[Task]
         forwarded:List[Network.Packet] = []
-        # accepted,forwarded = self.load_manager.sim_time_slice(time_slice)
-
-        # Run Policy Optimizer
-        self.policy_optimizer.sim_time_slice(time_slice)
+        accepted,forwarded = self.load_manager.sim_time_slice(time_slice, self.task_inbox.as_list())
 
         ####################
         # Bypass Load Manager (temporary)
-        accepted = self.task_inbox.as_list()
         self.task_inbox.clear()
         ####################
 

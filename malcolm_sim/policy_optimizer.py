@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import numpy as np
 
+from malcolm_sim.load_manager import LoadManager
+
 # from .malcolm_node import MalcolmNode
 
 
@@ -23,9 +25,9 @@ class PolicyOptimizer:
         # There will also be an additional cost with cost
         # imbalance = sum((current_load - load)**2 for load in other_loads) - additional cost of action
         imbalance = current_load - avg_load
-        return imbalance
+        return -imbalance
 
-    def sim_time_slice(self, time_slice:float) -> None:
+    def sim_time_slice(self, time_slice:float, load_manager:LoadManager) -> None:
         """
         Simulate Policy Optimizer for time_slice milliseconds.
         Makes adjustments to node.load_manager based on heartbeats of other nodes
@@ -75,6 +77,7 @@ class PolicyOptimizer:
                 self.logger.debug(f"Other Nodes: {other_nodes}")
                 self.logger.debug(f"Reward: {reward}")
                 #if utility function changes inequality will need to change (which may be tricky)
+                #will also need to change if we decide we want to steal tasks
                 if reward < 0:
                     self.logger.debug("Change policy")
                 else:
