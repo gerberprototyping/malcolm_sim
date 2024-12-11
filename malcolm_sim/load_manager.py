@@ -40,14 +40,17 @@ class LoadManager:
         actions = ["accept","forward"]
         accepted:List[Task] = []
         forwarded:List[Task] = []
-        for task in incoming_tasks:
-            action = np.random.choice(actions, p=[self.accept, self.forward])
-            if action == "accept":
-                self.logger.debug(f"With {self.accept} Accepted task: {task}")
-                accepted.append(task)
-            elif action == "forward":
-                self.logger.debug(f"With {self.forward} Forwarded task: {task}")
-                forwarded.append(task)
+        total_tasks = len(incoming_tasks)
+        num_accept = int(total_tasks * self.accept)
+        num_forward = total_tasks - num_accept
+
+        accepted = incoming_tasks[:num_accept]
+        forwarded = incoming_tasks[num_accept:]
+
+        for task in accepted:
+            self.logger.debug(f"Accepted task: {task}")
+        for task in forwarded:
+            self.logger.debug(f"Forwarded task: {task}")
         forwarded_packets = []
         for task in forwarded:
             forwarded_packets.append(task.make_packet(self.src, np.random.choice(self.possible_destinations)))
