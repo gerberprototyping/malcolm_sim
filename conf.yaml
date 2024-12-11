@@ -1,11 +1,25 @@
 MalcolmNodes:
-- name: "Node0"
-  core_count: 2
-  core_perf: 1
-  io_count: 4
-  io_perf: 1
-  overhead: 1
-  bandwidth: 1000000
+  - name: "Node0"
+    core_count: 2
+    core_perf: 1
+    io_count: 4
+    io_perf: 1
+    overhead: 1
+    bandwidth: 1000000
+  - name: "Node1"
+    core_count: 1
+    core_perf: 1
+    io_count: 2
+    io_perf: 1
+    overhead: 1
+    bandwidth: 1000000
+  - name: "Node2"
+    core_count: 1
+    core_perf: 1
+    io_count: 2
+    io_perf: 1
+    overhead: 1
+    bandwidth: 1000000
 Tasks:
   rate:
     type: constant
