@@ -10,6 +10,7 @@ from typing import Dict, List
 import yaml
 from schema import Schema, And, Or, Use, Optional
 
+from .iec_int import IEC_Int
 from .central_loadbalancer import CentralLoadBalancer
 from .malcolm_node import MalcolmNode
 from .schedular import Schedular
@@ -41,12 +42,12 @@ class MalcolmSim:
     config_schema:Schema = Schema({
         "MalcolmNodes": [{
             "name": Use(str),
-            "core_count": And(Use(int), lambda n: n > 0),
+            "core_count": And(Use(IEC_Int), lambda n: n > 0),
             Optional("core_perf"): And(Use(float), lambda n: n > 0),
-            "io_count": And(Use(int), lambda n: n > 0),
+            "io_count": And(Use(IEC_Int), lambda n: n > 0),
             Optional("io_perf"): And(Use(float), lambda n: n > 0),
             "overhead": And(Use(float), lambda n: n >= 0),
-            "bandwidth": And(Use(int), lambda n: n > 0)
+            "bandwidth": And(Use(IEC_Int), lambda n: n > 0)
         }],
         "Tasks": {
             "rate": task_schema,
@@ -70,7 +71,7 @@ class MalcolmSim:
             else:
                 raise ValueError(f"The file '{filename}' is not a valid JSON or YAML file.")
         # Validate schema
-        cls.config_schema.validate(config)
+        config = cls.config_schema.validate(config)
         # Parse config
         task_gen = None
         for key,value in config.items():
@@ -91,14 +92,14 @@ class MalcolmSim:
         """Command line interface to MalcolmSim"""
         raise NotImplementedError
 
-    # def metrics(self) -> Dict[str, float]:
-    #     return {
-    #         "CPU Busy": [node.schedular.core_utilization for node in MalcolmNode.all_nodes.values()],
-    #         "IO Busy": [node.schedular.io_utilization for node in MalcolmNode.all_nodes.values()],
-    #         "CPU Queue": [len(node.schedular.queue) for node in MalcolmNode.all_nodes.values()],
-    #         "IO Queue": [len(node.schedular.io_queue) for node in MalcolmNode.all_nodes.values()],
-    #         "Completed": [node.schedular.completed for node in MalcolmNode.all_nodes.values()],
-    #     }
+    def metrics(self) -> Dict[str, float]:
+        return {
+        "CPU Busy": [node.schedular.core_utilization for node in MalcolmNode.all_nodes.values()],
+        "IO Busy": [node.schedular.io_utilization for node in MalcolmNode.all_nodes.values()],
+        "CPU Queue": [len(node.schedular.queue) for node in MalcolmNode.all_nodes.values()],
+        "IO Queue": [len(node.schedular.io_queue) for node in MalcolmNode.all_nodes.values()],
+        "Completed": [node.schedular.completed for node in MalcolmNode.all_nodes.values()],
+        }
 
     def run(self, time_slice:float, sim_time:float) -> None:
         """Run single-threaded simulation of this MalcolmSim instance"""
