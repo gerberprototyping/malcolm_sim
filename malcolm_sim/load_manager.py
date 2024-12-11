@@ -19,7 +19,7 @@ class LoadManager:
         self.accept:float = 1.0
         self.forward:float = 0.0
         self.src:str = None
-        self.dest:str = "MalcolmNode:Node0"
+        self.possible_destinations:List[str] = []
         self.logger = logging.getLogger(f"malcolm_sim.MalcolmNode.LoadManager:{self.name}")
     
     def sim_time_slice(self, time_slice:float, incoming_tasks:List[Task]) -> Tuple[List[Task],List[Network.Packet]]:
@@ -50,6 +50,6 @@ class LoadManager:
                 forwarded.append(task)
         forwarded_packets = []
         for task in forwarded:
-            forwarded_packets.append(task.make_packet(self.src, self.dest))
+            forwarded_packets.append(task.make_packet(self.src, np.random.choice(self.possible_destinations)))
         return accepted, forwarded_packets
                     
