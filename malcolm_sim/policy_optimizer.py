@@ -78,7 +78,7 @@ class PolicyOptimizer:
                     other_loads.append(value.queue_size/value.expected_performance)
                     other_nodes[key] = value.queue_size
                 for key in self.node.other_heartbeats.keys():
-                    load_manager.possible_destinations.append(key)
+                    load_manager.possible_destinations.append(f"MalcolmNode:{key}")
                 reward = self.utility(load, [load]+other_loads)
                 self.logger.debug(f"Other Nodes: {other_nodes}")
                 self.logger.debug(f"Reward: {reward}")
