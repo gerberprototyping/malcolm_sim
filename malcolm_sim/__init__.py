@@ -6,6 +6,7 @@ Modules:
 - schedular: Contains Schedular which is the intra-node schedular of a Malcolm Node
 """
 
+from .iec_int import IEC_Int
 from .malcolm_sim import MalcolmSim
 from .malcolm_node import MalcolmNode
 from .load_manager import LoadManager

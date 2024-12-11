@@ -5,7 +5,7 @@ MalcolmNodes:
   io_count: 4
   io_perf: 1
   overhead: 1
-  bandwidth: 1000000
+  bandwidth: 1G
 Tasks:
   rate:
     type: constant
