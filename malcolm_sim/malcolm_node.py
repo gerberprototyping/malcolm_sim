@@ -103,6 +103,7 @@ class MalcolmNode:
         self.task_inbox:ThreadSafeList[Task] = ThreadSafeList()
         self.tx_queue:List[Network.Packet] = []
         self.other_heartbeats:Dict[Heartbeat] = {}
+        self.latency:float = 0
         # Add self to list of nodes
         self.all_nodes[self.name] = self
         self.barrier = threading.Barrier(
@@ -169,7 +170,7 @@ class MalcolmNode:
             cls.all_nodes[node_name].recv_packets(node_packets)
 
 
-    def sim_time_slice(self, time_slice:float) -> List[Network.Packet]:
+    def sim_time_slice(self, time_slice:float, curr_time:float) -> List[Network.Packet]:
         """"
         Simulate time slice on this Malcolm Node (NOT thread-safe)
         """
@@ -180,15 +181,18 @@ class MalcolmNode:
         accepted:List[Task]
         forwarded:List[Network.Packet] = []
         accepted,forwarded = self.load_manager.sim_time_slice(time_slice, self.task_inbox.as_list())
-
-        ####################
-        # Bypass Load Manager (temporary)
         self.task_inbox.clear()
-        ####################
 
         # Send accepted tasks to Schedular and simulate
         self.schedular.add_tasks(accepted)
-        self.schedular.sim_time_slice(time_slice)
+        completed = self.schedular.sim_time_slice(time_slice)
+        self.latency = 0
+        if completed:
+            for task in completed:
+                x = curr_time - task.attrs["gen_time"]
+                task.attrs["latency"] = x
+                self.latency += x
+            self.latency /= len(completed)
 
         # Prepare outgoing packets
         for node_name in self.all_nodes:    # heartbeat packets sent first
@@ -210,7 +214,7 @@ class MalcolmNode:
             if not self.start_time_slice.wait(TIMEOUT):
                 raise TimeoutError(TIMEOUT_MSG)
             # Simulate time slice
-            packets = self.sim_time_slice(time_slice)       # properly synchronized
+            packets = self.sim_time_slice(time_slice, curr_time)       # properly synchronized
             # Wait for all nodes to finish time slice
             self.barrier.wait(TIMEOUT)
             curr_time += time_slice

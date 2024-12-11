@@ -102,6 +102,7 @@ class MalcolmSim:
             "CPU Queue": {},
             "IO Queue": {},
             "Completed": {},
+            "Latency": {},
         }
         for node in MalcolmNode.all_nodes.values():
             name = node.name
@@ -110,6 +111,7 @@ class MalcolmSim:
             rval["CPU Queue"][name] = len(node.schedular.queue)
             rval["IO Queue"][name]  = len(node.schedular.io_queue)
             rval["Completed"][name] = node.schedular.completed
+            rval["Latency"][name]   = node.latency
         return rval
 
     def run(self, time_slice:float, sim_time:float) -> None:
@@ -135,7 +137,7 @@ class MalcolmSim:
             forwarded_task_packets = []
             for node in MalcolmNode.all_nodes.values():
                 forwarded_task_packets.extend(
-                    node.sim_time_slice(time_slice)
+                    node.sim_time_slice(time_slice, curr_time)
                 )
             # Route heartbeat and forwarded task packets
             MalcolmNode.route_packets(forwarded_task_packets)
