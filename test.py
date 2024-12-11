@@ -6,6 +6,9 @@ from malcolm_sim import MalcolmSim
 # MalcolmSim.test_schedular()
 
 sim = MalcolmSim.from_json_yaml("conf.yaml")
-sim.logger.setLevel(logging.DEBUG)
+# sim.logger.setLevel(logging.DEBUG)
 # sim.logger.setLevel(logging.TRACE)
-sim.run(1, 5)
+sim.logger.setLevel(logging.WARNING)
+
+sim.run(1, 500)
+sim.plot_all()

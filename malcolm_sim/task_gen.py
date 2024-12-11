@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Dict, List
+from typing import Dict, List
 
 from numpy import random
 
@@ -42,8 +42,10 @@ class TaskGen:
             _type = params.pop("type")
             if _type in ["const", "constant"]:
                 kwargs[kw] = FunctionCall(lambda x,size=1: [x]*size, params["value"])
-            elif "gaussian" == _type:
-                kwargs[kw] = FunctionCall(random.normal, **params)
+            elif _type in ["gaussian", "normal"]:
+                # rename kwargs for random.normal
+                _params = {"loc": params["center"], "scale":params["scale"]}
+                kwargs[kw] = FunctionCall(random.normal, **_params)
             else:
                 raise ValueError(f"Task parameter type '{_type}' is invalid")
         return cls(**kwargs)
@@ -80,8 +82,10 @@ class TaskGen:
 
     def gen_time_slice(self, time_slice:float, curr_time:float) -> List[Task]:
         """Generate all tasks for a time slice"""
-        rate = self.rate_func()[0]
+        rate = self.rate_func(size=1)[0]
         num_tasks = int(rate*time_slice*1000)
+        if num_tasks < 0: # zeroize negative numbers
+            num_tasks = 0
         task_args:List[List[(float|int)]] = (
             self.runtime_func(size=num_tasks),
             self.io_time_func(size=num_tasks),
@@ -89,7 +93,8 @@ class TaskGen:
         )
         tasks = []
         for args in zip(*task_args):
+            _args = [x if x>0 else 0 for x in args]
             attrs = {"gen_time": curr_time}     # must be inside loop
-            tasks.append(Task(f"#{self.id_count}", *args, attrs=attrs))
+            tasks.append(Task(f"#{self.id_count}", *_args, attrs=attrs))
             self.id_count += 1
         return tasks

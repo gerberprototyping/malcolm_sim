@@ -9,7 +9,7 @@ from .task import Task
 from .thread_safe_list import ThreadSafeList
 
 
-CONCURRENCY_TIMEOUT = 1
+CONCURRENCY_TIMEOUT = 10
 
 
 class Schedular:
@@ -80,7 +80,7 @@ class Schedular:
         return min(self.core_availability(), self.io_availability())
     
     def expected_performance(self) -> float:
-        """Return the expected perfomance based on the core performance/count and io performance/count"""
+        """Return the expected performance based on the core performance/count and io performance/count"""
         return min(self.core_count * self.core_perf, self.io_count * self.io_perf)
 
     def add_tasks(self, tasks:Iterable) -> None:
@@ -101,7 +101,7 @@ class Schedular:
         prev_delta_t = -1
         self.logger.info("Simulating time slice +%g ms", time_slice)
         self.logger.debug("Task queue: size=%d", len(self.queue))
-        if self.logger.isEnabledFor(logging.TRACE):
+        if self.logger.isEnabledFor(logging.TRACE): # pylint: disable=no-member
             for task in self.queue.as_list():
                 print("    "+str(task))
         # Simulation loop within time slice, each iteration is a single event
@@ -164,10 +164,10 @@ class Schedular:
             # Done if all cores/IOs are idle
             if delta_t < 0:
                 break
-            elif prev_delta_t == 0:
+            if prev_delta_t == 0 and delta_t == 0:
                 self.logger.critical(
-                    "Schedular:%s : Caught in infinite loop!\nDumping state\n%s",
-                    self.name, self.state_str()
+                    "Schedular:%s : Caught in infinite loop!\nDumping state\ndelta_t = %f\nprev_delta_t = %f\n%s",
+                    self.name, delta_t, prev_delta_t, self.state_str()
                 )
                 raise RuntimeError(f"Schedular:{self.name} : Caught in infinite loop!")
             # bound delta t within time_slice
@@ -221,7 +221,7 @@ class Schedular:
             curr_time += delta_t
             prev_delta_t = delta_t
         self.logger.info("Time slice simulation complete")
-        self.completed = len(completed)
+        self.completed += len(completed)
         if completed:
             task_str = ""
             for task in completed:
@@ -235,9 +235,9 @@ class Schedular:
             self.logger.debug("No tasks completed")
         # Update utilization and return completed tasks
         self.core_utilization = sum(core_busy_time) / self.core_count / time_slice
-        self.logger.debug(f"Core utilization: {self.core_utilization}")
+        self.logger.debug("Core utilization: %f", self.core_utilization)
         self.io_utilization = sum(io_busy_time) / self.io_count / time_slice
-        self.logger.debug(f"IO utilization: {self.io_utilization}")
+        self.logger.debug("IO utilization: %f", self.io_utilization)
         return completed
 
 

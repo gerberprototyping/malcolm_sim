@@ -8,6 +8,7 @@ import threading
 from typing import Dict, List
 
 import yaml
+import matplotlib.pyplot as plt
 from schema import Schema, And, Or, Use, Optional
 
 from .iec_int import IEC_Int
@@ -27,7 +28,7 @@ task_schema = Or(
         "value": And(Use(float), lambda n: n > 0)
     },
     {
-        "type": "gaussian",
+        "type": Or("gaussian", "normal"),
         "center": And(Use(float), lambda n: n > 0),
         "scale": And(Use(float), lambda n: n > 0)
     }
@@ -87,24 +88,35 @@ class MalcolmSim:
 
     def __init__(self, task_gen:TaskGen) -> None:
         self.task_gen = task_gen
+        self.metrics:Dict[str, Dict[str, List[any]]] = {}
 
     def cli(self, argv) -> None:
         """Command line interface to MalcolmSim"""
         raise NotImplementedError
 
-    def metrics(self) -> Dict[str, float]:
-        return {
-        "CPU Busy": [node.schedular.core_utilization for node in MalcolmNode.all_nodes.values()],
-        "IO Busy": [node.schedular.io_utilization for node in MalcolmNode.all_nodes.values()],
-        "CPU Queue": [len(node.schedular.queue) for node in MalcolmNode.all_nodes.values()],
-        "IO Queue": [len(node.schedular.io_queue) for node in MalcolmNode.all_nodes.values()],
-        "Completed": [node.schedular.completed for node in MalcolmNode.all_nodes.values()],
+    def get_metrics(self) -> Dict[str, Dict[str, (float|int)]]:
+        """Collect metrics from all nodes"""
+        rval = {
+            "CPU Util": {},
+            "IO Util": {},
+            "CPU Queue": {},
+            "IO Queue": {},
+            "Completed": {},
         }
+        for node in MalcolmNode.all_nodes.values():
+            name = node.name
+            rval["CPU Util"][name]  = node.schedular.core_utilization
+            rval["IO Util"][name]   = node.schedular.io_utilization
+            rval["CPU Queue"][name] = len(node.schedular.queue)
+            rval["IO Queue"][name]  = len(node.schedular.io_queue)
+            rval["Completed"][name] = node.schedular.completed
+        return rval
 
     def run(self, time_slice:float, sim_time:float) -> None:
         """Run single-threaded simulation of this MalcolmSim instance"""
         curr_time:float = 0.0
         self.logger.info("Running simulation in single-threaded mode")
+        self.metrics = {}
         while curr_time <= sim_time:
             self.logger.info("Simulating time slice %g ms", curr_time)
             # Generate and distribute new tasks
@@ -127,7 +139,16 @@ class MalcolmSim:
                 )
             # Route heartbeat and forwarded task packets
             MalcolmNode.route_packets(forwarded_task_packets)
-            # TODO print interesting stuff
+            # Collect metrics
+            metrics = self.get_metrics()
+            if not self.metrics:
+                for metric_name in metrics:
+                    self.metrics[metric_name] = {}
+                    for node_name in MalcolmNode.all_nodes:
+                        self.metrics[metric_name][node_name] = []
+            for metric_name,values in metrics.items():
+                for node_name,value in values.items():
+                    self.metrics[metric_name][node_name].append(value)
             curr_time += time_slice
             self.logger.info("End of time slice\n\n")
         self.logger.info("Simulation completed")
@@ -166,7 +187,7 @@ class MalcolmSim:
             # Clear start event while nodes are routing packets
             MalcolmNode.start_time_slice.clear()
             # TODO print interesting stuff
-            #     (no not access MalcolmNode incoming_tasks or other_heartbeats)
+            #     (do not access MalcolmNode incoming_tasks or other_heartbeats)
             # Wait for all nodes again
             MalcolmNode.barrier.wait(TIMEOUT)
         # Wait for all threads
@@ -176,6 +197,22 @@ class MalcolmSim:
             thread.join()
         print("All threads terminated"+" "*64)
         self.logger.info("Simulation completed")
+
+
+    def plot_all(self) -> None:
+        """Plot the metrics collected by the simulation"""
+        for metric_name, metric in self.metrics.items():
+            plt.figure(figsize=(10, 5))
+            for node_name, values in metric.items():
+                plt.plot(values, label=node_name)
+            plt.title(metric_name)
+            plt.xlabel("Time")
+            plt.ylabel(metric_name)
+            plt.legend()
+            plt.grid(True)
+            plt.savefig(f"{metric_name}.png")
+            plt.close()
+
 
 
     @classmethod
