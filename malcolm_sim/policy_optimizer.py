@@ -20,11 +20,14 @@ class PolicyOptimizer:
 
     def utility(self, current_load, other_loads):
         """Compute the reward as the negative of the load imbalance."""
-        avg_load = np.mean(other_loads)
+        sum = 0 
+        for load in other_loads:
+            sum += load
+        avg_load = sum/len(other_loads)
         # with more information from the node availability in heart beat load will change
         # There will also be an additional cost with cost
         # imbalance = sum((current_load - load)**2 for load in other_loads) - additional cost of action
-        imbalance = current_load - avg_load
+        imbalance = (current_load - avg_load)
         return -imbalance
 
     def sim_time_slice(self, time_slice:float, load_manager:LoadManager) -> None:
@@ -66,12 +69,13 @@ class PolicyOptimizer:
         """
         if 0 < time_slice:
             if self.node.other_heartbeats:
-                load = len(self.node.schedular.queue)
+                load_manager.src = self.node.name
+                load = len(self.node.schedular.queue)/self.node.schedular.expected_performance()
                 self.logger.debug(f"My load: {load}")
                 other_loads = []
                 other_nodes = {}
                 for key, value in self.node.other_heartbeats.items():
-                    other_loads.append(value.queue_size)
+                    other_loads.append(value.queue_size/value.expected_performance)
                     other_nodes[key] = value.queue_size
                 reward = self.utility(load, [load]+other_loads)
                 self.logger.debug(f"Other Nodes: {other_nodes}")
@@ -79,8 +83,15 @@ class PolicyOptimizer:
                 #if utility function changes inequality will need to change (which may be tricky)
                 #will also need to change if we decide we want to steal tasks
                 if reward < 0:
-                    self.logger.debug("Change policy")
+                    self.logger.debug(f"Increase forward policy: accept {load_manager.accept}, forward: {load_manager.forward}")
+                    load_manager.accept = max(0, load_manager.accept - round(1/(1+len(other_nodes))**2, 2))
+                    load_manager.forward = min(1, load_manager.forward + round(1/(1+len(other_nodes))**2, 2))
+                elif reward > 0:
+                    self.logger.debug(f"Increase accept policy: accept {load_manager.accept}, forward: {load_manager.forward}")
+                    load_manager.accept = min(1, load_manager.accept + round(1/(1+len(other_nodes))**2, 2))
+                    load_manager.forward = max(0, load_manager.forward - round(1/(1+len(other_nodes))**2, 2))
                 else:
-                    self.logger.debug("Keep policy")
+                    self.logger.debug(f"Keep policy: accept {load_manager.accept}, forward: {load_manager.forward}")
+
             else:
                 self.logger.debug("no heart beats")

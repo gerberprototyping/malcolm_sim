@@ -12,11 +12,11 @@ HEARTBEAT_SIZE:int = 256
 @dataclass
 class Heartbeat:
     """Malcolm Node status packet"""
-    availability:float
+    expected_performance:float
     queue_size:int
 
     @classmethod
-    def make_packet(cls, src:str, dest:str, availability:float, queue_size:int) -> Network.Packet:
+    def make_packet(cls, src:str, dest:str, expected_performance:float, queue_size:int) -> Network.Packet:
         """Create a Heartbeat and embed it in a network packet"""
-        data = cls(availability, queue_size)
+        data = cls(expected_performance, queue_size)
         return Network.Packet(data, HEARTBEAT_SIZE, src, dest, "Heartbeat", None)

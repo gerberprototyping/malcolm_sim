@@ -76,9 +76,9 @@ class Task:
             self.progress = self.io_time
             return True
 
-    def make_packet(self, src:str) -> Network.Packet:
+    def make_packet(self, src:str, dest:str) -> Network.Packet:
         """Wrap a task in a network packet"""
-        return Network.Packet(self, self.payload, src, "Task", None)
+        return Network.Packet(self, self.payload, src, dest, "Task", None)
 
 
     def __str__(self) -> str:

@@ -78,7 +78,10 @@ class Schedular:
     def availability(self) -> float:
         """Return the system availability as the min of CPU and IO availability (thread-safe)"""
         return min(self.core_availability(), self.io_availability())
-
+    
+    def expected_performance(self) -> float:
+        """Return the expected perfomance based on the core performance/count and io performance/count"""
+        return min(self.core_count * self.core_perf, self.io_count * self.io_perf)
 
     def add_tasks(self, tasks:Iterable) -> None:
         """Add tasks to this scheduler's queue (thread-safe)"""

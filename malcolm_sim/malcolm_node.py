@@ -115,7 +115,7 @@ class MalcolmNode:
     def get_heartbeat_packet(self, dest:str) -> Network.Packet:
         """Get a heartbeat from this node and wrap it in a network packet (thread-safe)"""
         queue_size = len(self.schedular.queue) + len(self.schedular.io_queue)
-        return Heartbeat.make_packet(self.src, dest, self.schedular.availability(), queue_size)
+        return Heartbeat.make_packet(self.src, dest, self.schedular.expected_performance(), queue_size)
 
 
     def recv_packets(self, packets:List[Network.Packet]) -> None:

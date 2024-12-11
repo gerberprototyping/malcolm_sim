@@ -6,6 +6,8 @@ import logging
 import numpy as np
 from typing import List, Tuple
 
+from .network import Network
+
 from .task import Task
 
 
@@ -16,9 +18,11 @@ class LoadManager:
         self.name = str(name)
         self.accept:float = 1.0
         self.forward:float = 0.0
+        self.src:str = None
+        self.dest:str = "MalcolmNode:Node0"
         self.logger = logging.getLogger(f"malcolm_sim.MalcolmNode.LoadManager:{self.name}")
     
-    def sim_time_slice(self, time_slice:float, incoming_tasks:List[Task]) -> Tuple[List[Task],List[Task]]:
+    def sim_time_slice(self, time_slice:float, incoming_tasks:List[Task]) -> Tuple[List[Task],List[Network.Packet]]:
         """
         Simulate Load Manager for time_slice milliseconds.
         Returns a tuple containing a list of accepted and forwarded tasks.
@@ -34,17 +38,18 @@ class LoadManager:
 
         """
         actions = ["accept","forward"]
-        accepted = []
-        forwarded = []
+        accepted:List[Task] = []
+        forwarded:List[Task] = []
         for task in incoming_tasks:
             action = np.random.choice(actions, p=[self.accept, self.forward])
             if action == "accept":
-                self.logger.debug(f"Accepted task: {task}")
-                self.logger.debug(f"Probability {self.accept}")
+                self.logger.debug(f"With {self.accept} Accepted task: {task}")
                 accepted.append(task)
             elif action == "forward":
-                self.logger.debug(f"Forwarded task: {task}")
-                self.logger.debug(f"Probability {self.forward}")
+                self.logger.debug(f"With {self.forward} Forwarded task: {task}")
                 forwarded.append(task)
-        return accepted, forwarded
+        forwarded_packets = []
+        for task in forwarded:
+            forwarded_packets.append(task.make_packet(self.src, self.dest))
+        return accepted, forwarded_packets
                     
