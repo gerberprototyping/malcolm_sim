@@ -71,7 +71,7 @@ class MalcolmSim:
             else:
                 raise ValueError(f"The file '{filename}' is not a valid JSON or YAML file.")
         # Validate schema
-        cls.config_schema.validate(config)
+        config = cls.config_schema.validate(config)
         # Parse config
         task_gen = None
         for key,value in config.items():

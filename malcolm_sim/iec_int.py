@@ -3,12 +3,12 @@
 import re
 
 
-class IEC_Int(int):
+class IEC_Int(int): # pylint: disable=invalid-name
     """Extends the int class to support instantiation using IEC formatting"""
 
-    def __init__(self, value) -> None:
+    def __new__(cls, value) -> int:
         if isinstance(value, str):
-            match = re.match(r"^(\d+)\s?([KMGT]?)$", value.strip())
+            match = re.match(r"^(\d+)\s?([KMGT]?)$", value.strip().upper())
             if not match:
                 raise ValueError("Invalid string format for IEC int")
             x = match.group(2)
@@ -22,6 +22,6 @@ class IEC_Int(int):
                 mult = 1024 * 1024 * 1024 * 1024
             else:
                 mult = 1
-            self = int(match.group(1)) * mult
+            return int.__new__(cls, int(match.group(1)) * mult)
         else:
-            self = int(value)
+            return int.__new__(cls, int(value))

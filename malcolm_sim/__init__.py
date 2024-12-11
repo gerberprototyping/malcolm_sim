@@ -20,6 +20,7 @@ from .central_loadbalancer import CentralLoadBalancer
 from .thread_safe_list import ThreadSafeList
 
 __all__ = [
+    "IEC_Int",
     "MalcolmSim",
     "MalcolmNode",
     "LoadManager",
