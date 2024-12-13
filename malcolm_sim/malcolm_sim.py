@@ -61,7 +61,7 @@ class MalcolmSim:
 
 
     @classmethod
-    def from_json_yaml(cls, filename:str) -> None:
+    def from_json_yaml(cls, filename:str) -> MalcolmSim:
         """Configures the instance from a JSON or YAML file"""
         # Parse file
         ext = filename.split(".")[-1].lower()
