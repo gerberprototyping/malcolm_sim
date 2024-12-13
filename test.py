@@ -10,5 +10,5 @@ sim = MalcolmSim.from_json_yaml("conf.yaml")
 # sim.logger.setLevel(logging.TRACE)
 sim.logger.setLevel(logging.WARNING)
 
-sim.run(1, 500)
+sim.run(1, 5000)
 sim.plot_all()

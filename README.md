@@ -4,9 +4,9 @@ A simulation for the research paper
 [Malcolm: Multi-agent Learning for Cooperative Load Management at Rack Scale](https://dl.acm.org/doi/10.1145/3570611).
 This group is unaffiliated with the original researchers.
 
-The system is simulated as a set of heterogenous Malcolm Nodes is are connected
-simulated network links. A central loadbalancer distributes incoming tasks to
-the Malcolm Nodes. The core component of the simulation is a Distributed
+The system is simulated as a set of heterogenous Malcolm Nodes connected using
+simulated network links. A central loadbalancer evenly distributes incoming tasks
+to the Malcolm Nodes. The core component of the simulation is a Distributed
 Load-Balancing game (DLB) in the Load Manager of each Malcolm Node.
 
 ## Malcolm Node
@@ -97,7 +97,7 @@ nodes and send policy adjustments to the Load Manager and DLB game.
 ### Intra-node Schedular
 
 This subsystem is responsible for scheduling and executing tasks within the
-Malcolm Node. These tasks are queued and evaluated by a set of Execution Units
+Malcolm Node. These tasks are queued and evaluated by a set of Execution Units.
 
 | Parameters       | Description                                                        |
 | ---------------- | ------------------------------------------------------------------ |

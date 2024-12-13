@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 from typing import Dict, List
 
@@ -201,20 +202,34 @@ class MalcolmSim:
         self.logger.info("Simulation completed")
 
 
-    def plot_all(self) -> None:
+    def plot_all(self, file_prefix:str="") -> None:
         """Plot the metrics collected by the simulation"""
+        if file_prefix and not re.match(r"^[-_]", file_prefix):
+            file_prefix += "_"
+        stats = ""
         for metric_name, metric in self.metrics.items():
+            safe_metric_name = re.sub(r"\s+", "_", metric_name)
+            # Plot
             plt.figure(figsize=(10, 5))
             for node_name, values in metric.items():
+                safe_node_name = re.sub(r"\s+", "_", node_name)
                 plt.plot(values, label=node_name)
+                # Stats
+                name = f"{safe_metric_name}:{safe_node_name}"
+                stats += f"{name}:min = {min(values):.3f}\n"
+                stats += f"{name}:max = {max(values):.3f}\n"
+                stats += f"{name}:avg = {sum(values)/len(values):.3f}\n"
             plt.title(metric_name)
             plt.xlabel("Time")
             plt.ylabel(metric_name)
             plt.legend()
             plt.grid(True)
-            plt.savefig(f"{metric_name}.png")
+            filename = f"{file_prefix}{safe_metric_name}.png"
+            plt.savefig(filename)
             plt.close()
-
+            # Save Stats
+            with open(f"{file_prefix}stats.txt", "w", encoding="utf-8") as f:
+                f.write(stats)
 
 
     @classmethod
